@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTextInput } from '../components/AppTextInput';
 import { SurfaceCard } from '../components/SurfaceCard';
@@ -12,6 +13,7 @@ import { useApp } from '../context/AppContext';
 import { useI18n } from '../i18n';
 import { MainTabParamList, RootStackParamList } from '../navigation/AppNavigator';
 import { radius, spacing, useThemeColors } from '../theme';
+import { Task } from '../types';
 import { addDays, formatPolishDate, todayDateString, toDateString } from '../utils/date';
 
 type ScreenProps = CompositeScreenProps<
@@ -29,7 +31,7 @@ function getInitials(name: string) {
 }
 
 export function TodayScreen({ navigation }: ScreenProps) {
-  const { activeData, state, toggleTaskStatus } = useApp();
+  const { activeData, state, toggleTaskStatus, quickMoveTask } = useApp();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { scaleFont, t } = useI18n();
@@ -236,11 +238,12 @@ export function TodayScreen({ navigation }: ScreenProps) {
             <View style={styles.sectionList}>
               {dayTasks.length ? (
                 dayTasks.map((task) => (
-                  <TaskRow
+                  <SwipeableTaskRow
                     key={task.id}
                     task={task}
                     onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })}
                     onToggleStatus={() => toggleTaskStatus(task.id)}
+                    onPause={() => quickMoveTask(task.id, 'postpone')}
                   />
                 ))
               ) : (
@@ -262,7 +265,12 @@ export function TodayScreen({ navigation }: ScreenProps) {
             <View style={styles.sectionList}>
               {completedTasks.length ? (
                 completedTasks.map((task) => (
-                  <TaskRow key={task.id} task={task} onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })} />
+                  <SwipeableTaskRow
+                    key={task.id}
+                    task={task}
+                    onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })}
+                    onToggleStatus={() => toggleTaskStatus(task.id)}
+                  />
                 ))
               ) : (
                 <SurfaceCard>
@@ -318,6 +326,80 @@ export function TodayScreen({ navigation }: ScreenProps) {
         <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color="#fff" />
       </Pressable>
     </View>
+  );
+}
+
+function SwipeableTaskRow({
+  task,
+  onPress,
+  onToggleStatus,
+  onPause,
+}: {
+  task: Task;
+  onPress: () => void;
+  onToggleStatus?: () => void;
+  onPause?: () => void;
+}) {
+  const colors = useThemeColors();
+  const { scaleFont, t } = useI18n();
+  const swipeableRef = useRef<Swipeable | null>(null);
+
+  const actions =
+    task.status === 'completed'
+      ? [
+          {
+            label: t('todaySwipeRestore'),
+            icon: 'return-up-back-outline' as const,
+            backgroundColor: colors.primarySoft,
+            color: colors.primary,
+            onPress: onToggleStatus,
+          },
+        ]
+      : [
+          {
+            label: t('todaySwipeComplete'),
+            icon: 'checkmark-outline' as const,
+            backgroundColor: '#DCF6E5',
+            color: '#167A42',
+            onPress: onToggleStatus,
+          },
+          {
+            label: t('todaySwipePause'),
+            icon: 'pause-outline' as const,
+            backgroundColor: colors.warningSoft,
+            color: colors.warningText,
+            onPress: onPause,
+          },
+        ].filter((item) => Boolean(item.onPress));
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      overshootRight={false}
+      renderRightActions={() => (
+        <View style={styles.swipeActions}>
+          {actions.map((action) => (
+            <Pressable
+              key={action.label}
+              style={[styles.swipeAction, { backgroundColor: action.backgroundColor }]}
+              onPress={() => {
+                swipeableRef.current?.close();
+                action.onPress?.();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+            >
+              <Ionicons name={action.icon} size={20} color={action.color} />
+              <Text style={[styles.swipeActionText, { color: action.color, fontSize: scaleFont(12) }]}>
+                {action.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    >
+      <TaskRow task={task} onPress={onPress} onToggleStatus={onToggleStatus} />
+    </Swipeable>
   );
 }
 
@@ -440,6 +522,23 @@ const styles = StyleSheet.create({
   },
   sectionList: {
     gap: 12,
+  },
+  swipeActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginLeft: 12,
+  },
+  swipeAction: {
+    width: 96,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+  },
+  swipeActionText: {
+    fontWeight: '700',
+    textAlign: 'center',
   },
   emptyText: {
     textAlign: 'center',

@@ -25,7 +25,7 @@ import {
   ToastTone,
   UserSettings,
 } from '../types';
-import { addHoursToTime, hasTimeOverlap, quickAssignToDate, todayDateString } from '../utils/date';
+import { addHoursToTime, futureDateFromNow, quickAssignToDate, todayDateString } from '../utils/date';
 
 interface AppContextValue {
   isReady: boolean;
@@ -52,7 +52,7 @@ interface AppContextValue {
   updateTask: (taskId: string, draft: TaskDraft) => void;
   deleteTask: (taskId: string) => void;
   toggleTaskStatus: (taskId: string) => void;
-  quickMoveTask: (taskId: string, action: QuickAssign | 'postpone') => void;
+  quickMoveTask: (taskId: string, action: QuickAssign | 'later-far' | 'postpone') => void;
   assignTaskToSlot: (taskId: string, date: string, startTime: string, durationHours: number) => boolean;
   clearTaskSchedule: (taskId: string) => void;
   removeTimeBlock: (timeBlockId: string) => void;
@@ -80,6 +80,13 @@ function wait(ms: number) {
 
 function computeRefined(task: Pick<Task, 'category' | 'priority' | 'dueDate' | 'plannedHours' | 'notes'>) {
   return Boolean(task.category || task.priority || task.dueDate || task.plannedHours || task.notes?.trim());
+}
+
+function normalizePlannerHour(value: unknown, fallback: number, min: number, max: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, Math.round(value)));
 }
 
 function normalizeSubtasks(input: unknown): SubtaskItem[] {
@@ -140,6 +147,19 @@ function ensureModeShape(base: ModeData, current?: Partial<ModeData>): ModeData 
 
 function ensureStateShape(state: RootState): RootState {
   const fallback = createInitialRootState();
+  const plannerStartHour = normalizePlannerHour(
+    state?.settings?.plannerStartHour,
+    fallback.settings.plannerStartHour,
+    5,
+    22,
+  );
+  const rawPlannerEndHour = normalizePlannerHour(
+    state?.settings?.plannerEndHour,
+    fallback.settings.plannerEndHour,
+    7,
+    24,
+  );
+  const plannerEndHour = Math.max(plannerStartHour + 1, rawPlannerEndHour);
 
   return {
     ...fallback,
@@ -156,6 +176,8 @@ function ensureStateShape(state: RootState): RootState {
           : state?.settings?.fontSize === 'large'
             ? 'large'
             : 'medium',
+      plannerStartHour,
+      plannerEndHour,
       syncEnabled: Boolean(state?.settings?.syncEnabled),
       lastSyncedAt: state?.settings?.lastSyncedAt,
     },
@@ -659,8 +681,8 @@ export function AppProvider({ children }: PropsWithChildren) {
             return {
               ...task,
               status: 'active' as TaskStatus,
-              quickAssign: action,
-              dueDate: quickAssignToDate(action),
+              quickAssign: action === 'later-far' ? 'later' : action,
+              dueDate: action === 'later-far' ? futureDateFromNow(60) : quickAssignToDate(action),
               scheduledStartTime: undefined,
               updatedAt: new Date().toISOString(),
             };
@@ -676,18 +698,6 @@ export function AppProvider({ children }: PropsWithChildren) {
       },
       assignTaskToSlot: (taskId, date, startTime, durationHours) => {
         const endTime = addHoursToTime(startTime, durationHours);
-        const hasConflict = activeData.timeBlocks.some(
-          (block) =>
-            block.taskId !== taskId &&
-            block.date === date &&
-            hasTimeOverlap(startTime, endTime, block.startTime, block.endTime),
-        );
-
-        if (hasConflict) {
-          showToast('Ten przedział czasu nachodzi na inne zadanie.', 'warning');
-          return false;
-        }
-
         updateActiveDataset((current) => {
           const nextTasks = current.tasks.map((task) =>
             task.id === taskId

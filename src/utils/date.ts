@@ -24,9 +24,21 @@ export function quickAssignToDate(quickAssign?: QuickAssign | null) {
     return toDateString(addDays(now, 1));
   }
   if (quickAssign === 'later') {
-    return toDateString(addDays(now, 3));
+    return toDateString(addDays(now, 14));
   }
   return toDateString(now);
+}
+
+export function futureDateFromNow(days: number) {
+  return toDateString(addDays(new Date(), days));
+}
+
+export function isTimeInPlannerRange(time: string | undefined, startHour: number, endHour: number) {
+  if (!time) {
+    return false;
+  }
+  const minutes = timeToMinutes(time);
+  return minutes >= startHour * 60 && minutes < endHour * 60;
 }
 
 export function getLocale(language: LanguagePreference) {
@@ -170,9 +182,9 @@ export function generateUpcomingDateOptionsLocalized(
   });
 }
 
-export function generateTimeOptions() {
+export function generateTimeOptions(startHour = 6, endHour = 23) {
   const times: string[] = [];
-  for (let hour = 6; hour <= 22; hour += 1) {
+  for (let hour = startHour; hour < endHour; hour += 1) {
     for (const minute of [0, 15, 30, 45]) {
       times.push(`${pad(hour)}:${pad(minute)}`);
     }

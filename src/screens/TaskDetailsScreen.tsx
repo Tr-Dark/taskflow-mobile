@@ -21,7 +21,7 @@ import { useI18n } from '../i18n';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { radius, spacing, useThemeColors } from '../theme';
 import { SubtaskItem, TaskDraft, TaskPriority, TaskStatus } from '../types';
-import { generateTimeOptions, generateUpcomingDateOptions, todayDateString } from '../utils/date';
+import { futureDateFromNow, generateTimeOptions, generateUpcomingDateOptions, todayDateString } from '../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TaskDetails'>;
 
@@ -57,7 +57,7 @@ function displayDate(value: string | undefined, fallbackLabel: string) {
 }
 
 export function TaskDetailsScreen({ route, navigation }: Props) {
-  const { activeData, updateTask, deleteTask, quickMoveTask, clearTaskSchedule } = useApp();
+  const { activeData, state, updateTask, deleteTask, quickMoveTask, clearTaskSchedule } = useApp();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { scaleFont, t } = useI18n();
@@ -90,7 +90,10 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
     { value: '4', label: '4 h' },
   ];
 
-  const timeOptions = generateTimeOptions().map((value) => ({ value, label: value }));
+  const timeOptions = generateTimeOptions(state.settings.plannerStartHour, state.settings.plannerEndHour).map((value) => ({
+    value,
+    label: value,
+  }));
 
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [durationModalVisible, setDurationModalVisible] = useState(false);
@@ -193,7 +196,7 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
     ]);
   }
 
-  function applyQuickMove(action: 'today' | 'tomorrow' | 'later' | 'postpone') {
+  function applyQuickMove(action: 'today' | 'tomorrow' | 'later' | 'later-far' | 'postpone') {
     quickMoveTask(currentTask.id, action);
     setDraft((prev) => ({
       ...prev,
@@ -204,7 +207,9 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
             ? todayDateString()
             : action === 'tomorrow'
               ? generateUpcomingDateOptions(2)[1].value
-              : generateUpcomingDateOptions(4)[3].value,
+              : action === 'later'
+                ? futureDateFromNow(14)
+                : futureDateFromNow(60),
       scheduledStartTime: undefined,
       status: action === 'postpone' ? 'postponed' : 'active',
     }));
@@ -255,6 +260,7 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
           <QuickAction label={t('taskQuickToday')} onPress={() => applyQuickMove('today')} />
           <QuickAction label={t('taskQuickTomorrow')} onPress={() => applyQuickMove('tomorrow')} />
           <QuickAction label={t('taskQuickLater')} onPress={() => applyQuickMove('later')} />
+          <QuickAction label={t('taskQuickFar')} onPress={() => applyQuickMove('later-far')} />
           <QuickAction label={t('taskQuickPostpone')} danger onPress={() => applyQuickMove('postpone')} />
         </View>
 

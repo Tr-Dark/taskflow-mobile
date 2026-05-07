@@ -26,6 +26,8 @@ const themeOptions: { value: ThemePreference; labelKey: 'themeLight' | 'themeDar
 
 const languageOptions: LanguagePreference[] = ['pl', 'en', 'uk'];
 const fontSizeOptions: FontSizePreference[] = ['small', 'medium', 'large'];
+const plannerStartOptions = [5, 6, 7, 8, 9, 10];
+const plannerEndOptions = [18, 19, 20, 21, 22, 23, 24];
 const categoryPalette = ['#E8EDFF', '#FFEAD9', '#EAF8EE', '#FFE7EC', '#FFF4CC', '#EEE8FF', '#DDF5F1', '#D9E8FF'];
 
 function getReadableTextColor(hexColor: string) {
@@ -311,6 +313,81 @@ export function SettingsScreen({ navigation }: Props) {
         </SurfaceCard>
 
         <SurfaceCard>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontSize: scaleFont(22) }]}>{t('settingsPlannerHours')}</Text>
+          <Text style={[styles.helper, { color: colors.mutedText, fontSize: scaleFont(14) }]}>{t('settingsPlannerHoursHint')}</Text>
+
+          <View style={styles.plannerRangeWrap}>
+            <View style={{ flex: 1, gap: 10 }}>
+              <Text style={[styles.label, { color: colors.text, fontSize: scaleFont(14) }]}>{t('settingsPlannerStart')}</Text>
+              <View style={styles.hourChipWrap}>
+                {plannerStartOptions.map((hour) => {
+                  const active = state.settings.plannerStartHour === hour;
+                  return (
+                    <Pressable
+                      key={`start-${hour}`}
+                      accessibilityRole="button"
+                      onPress={() =>
+                        updateSettings({
+                          plannerStartHour: hour,
+                          plannerEndHour: Math.max(hour + 1, state.settings.plannerEndHour),
+                        })
+                      }
+                      style={[
+                        styles.hourChip,
+                        {
+                          backgroundColor: active ? colors.primarySoft : colors.surfaceMuted,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: active ? colors.primary : colors.mutedText, fontWeight: '700', fontSize: scaleFont(14) }}>
+                        {`${hour}:00`}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={{ flex: 1, gap: 10 }}>
+              <Text style={[styles.label, { color: colors.text, fontSize: scaleFont(14) }]}>{t('settingsPlannerEnd')}</Text>
+              <View style={styles.hourChipWrap}>
+                {plannerEndOptions.map((hour) => {
+                  const active = state.settings.plannerEndHour === hour;
+                  const disabled = hour <= state.settings.plannerStartHour;
+                  return (
+                    <Pressable
+                      key={`end-${hour}`}
+                      accessibilityRole="button"
+                      disabled={disabled}
+                      onPress={() => updateSettings({ plannerEndHour: hour })}
+                      style={[
+                        styles.hourChip,
+                        {
+                          backgroundColor: active ? colors.primarySoft : colors.surfaceMuted,
+                          borderColor: active ? colors.primary : colors.border,
+                          opacity: disabled ? 0.45 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: active ? colors.primary : colors.mutedText, fontWeight: '700', fontSize: scaleFont(14) }}>
+                        {hour === 24 ? '24:00' : `${hour}:00`}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </SurfaceCard>
+
+        <SurfaceCard>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontSize: scaleFont(22) }]}>{t('settingsHelp')}</Text>
+          <Text style={[styles.helper, { color: colors.mutedText, fontSize: scaleFont(14) }]}>{t('settingsHelpHint')}</Text>
+          <PrimaryButton title={t('settingsOpenFaq')} variant="secondary" onPress={() => navigation.navigate('Faq')} style={{ marginTop: 16 }} />
+        </SurfaceCard>
+
+        <SurfaceCard>
           <Text style={[styles.sectionTitle, { color: colors.text, fontSize: scaleFont(22) }]}>{t('settingsNotifications')}</Text>
           <Text style={[styles.helper, { color: colors.mutedText, fontSize: scaleFont(14) }]}>
             {t('settingsNotificationStatus')}: {notificationPermission === 'granted' ? t('notificationsStatusGranted') : notificationPermission === 'denied' ? t('notificationsStatusDenied') : t('notificationsStatusUndetermined')}
@@ -548,6 +625,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 16,
+  },
+  plannerRangeWrap: {
+    gap: 18,
+    marginTop: 16,
+  },
+  hourChipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  hourChip: {
+    minWidth: 76,
+    minHeight: 44,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
   },
   selectChip: {
     flex: 1,

@@ -32,6 +32,8 @@ export interface UserSettings {
   theme: ThemePreference;
   language: LanguagePreference;
   fontSize: FontSizePreference;
+  plannerStartHour: number;
+  plannerEndHour: number;
   syncEnabled: boolean;
   lastSyncedAt?: string;
 }

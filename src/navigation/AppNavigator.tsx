@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext';
 import { useI18n } from '../i18n';
 import { useThemeColors } from '../theme';
 import { ExtrasScreen } from '../screens/ExtrasScreen';
+import { FaqScreen } from '../screens/FaqScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { NoteEditorScreen } from '../screens/NoteEditorScreen';
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   NoteEditor: { noteId?: string } | undefined;
   History: undefined;
   Settings: undefined;
+  Faq: undefined;
 };
 
 export type MainTabParamList = {
@@ -101,6 +103,7 @@ export function AppNavigator() {
           <Stack.Screen name="NoteEditor" component={NoteEditorScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Faq" component={FaqScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />
