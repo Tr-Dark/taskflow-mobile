@@ -1,0 +1,530 @@
+import { Category, ModeData, NoteItem, ReminderSetting, RootState, Task, TimeBlock } from '../types';
+import { addDays, addHoursToTime, toDateString, todayDateString } from '../utils/date';
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+export function createDefaultCategories(): Category[] {
+  return [
+    { id: 'cat-work', name: 'Praca', color: '#E8EDFF', builtIn: true },
+    { id: 'cat-personal', name: 'Osobiste', color: '#FCE8F1', builtIn: true },
+    { id: 'cat-health', name: 'Zdrowie', color: '#E8F8EE', builtIn: true },
+    { id: 'cat-shopping', name: 'Zakupy', color: '#FFF1D6', builtIn: true },
+    { id: 'cat-family', name: 'Rodzina', color: '#FFE7EC', builtIn: true },
+    { id: 'cat-home', name: 'Dom', color: '#EAF8EE', builtIn: true },
+    { id: 'cat-study', name: 'Nauka', color: '#EEF0FF', builtIn: true },
+    { id: 'cat-extra', name: 'Dodatkowa praca', color: '#ECE7FF', builtIn: true },
+    { id: 'cat-other', name: 'Inne', color: '#F2F3F7', builtIn: true },
+  ];
+}
+
+function buildReminders(): ReminderSetting[] {
+  return [
+    { id: 'water', type: 'water', interval: 60, enabled: true },
+    { id: 'movement', type: 'movement', interval: 90, enabled: true },
+    { id: 'break', type: 'break', interval: 120, enabled: false },
+  ];
+}
+
+export function createDemoTasks(): Task[] {
+  const now = new Date();
+  const nowIsoValue = nowIso();
+  const today = todayDateString();
+  const yesterday = toDateString(addDays(now, -1));
+  const tomorrow = toDateString(addDays(now, 1));
+  const inTwoDays = toDateString(addDays(now, 2));
+  const closerLater = toDateString(addDays(now, 5));
+  const mediumLater = toDateString(addDays(now, 9));
+  const fartherLater = toDateString(addDays(now, 18));
+  const farFuture = toDateString(addDays(now, 45));
+  const oldIso = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const yesterdayIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+  return [
+    {
+      id: 'task-1',
+      title: 'Sprint review z zespolem',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Praca',
+      priority: 'high',
+      dueDate: today,
+      plannedHours: 1.5,
+      scheduledStartTime: '09:00',
+      notes: 'Przejscie po blockerach, velocity i ryzykach na przyszly tydzien.',
+      subtasks: [
+        { id: 'subtask-1-1', title: 'Przygotowac slajd z velocity', completed: true, createdAt: oldIso },
+        { id: 'subtask-1-2', title: 'Spisac 3 glowne ryzyka', completed: false, createdAt: nowIsoValue },
+        { id: 'subtask-1-3', title: 'Wyslac follow-up po spotkaniu', completed: false, createdAt: nowIsoValue },
+      ],
+      createdAt: oldIso,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-2',
+      title: 'Szybki przeglad maili',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Praca',
+      priority: 'medium',
+      dueDate: today,
+      plannedHours: 0.25,
+      scheduledStartTime: '08:00',
+      notes: 'Odpowiedziec tylko na pilne watki.',
+      createdAt: yesterdayIso,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-3',
+      title: 'Rozliczyc faktury od dostawcow',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Praca',
+      priority: 'high',
+      dueDate: today,
+      plannedHours: 0.5,
+      scheduledStartTime: '08:15',
+      notes: 'Sprawdzic dwie zalegle pozycje i wyslac potwierdzenie.',
+      createdAt: yesterdayIso,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-4',
+      title: 'Kupic produkty na 3 dni',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Zakupy',
+      priority: 'medium',
+      dueDate: today,
+      plannedHours: 0.75,
+      notes: 'Warzywa, jogurty, pieczywo i kawa.',
+      subtasks: [
+        { id: 'subtask-4-1', title: 'Sprawdzic lodowke', completed: true, createdAt: yesterdayIso },
+        { id: 'subtask-4-2', title: 'Kupic kapsulki do kawy', completed: false, createdAt: nowIsoValue },
+      ],
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-5',
+      title: 'Odebrac paczke z paczkomatu',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Dom',
+      priority: 'medium',
+      dueDate: today,
+      plannedHours: 0.25,
+      notes: 'Kod odbioru jest w SMS.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-6',
+      title: 'Silownia i rozciaganie',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Zdrowie',
+      priority: 'medium',
+      dueDate: today,
+      plannedHours: 1,
+      scheduledStartTime: '18:00',
+      notes: 'Trening plecow plus 15 min mobilizacji.',
+      createdAt: yesterdayIso,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-7',
+      title: 'Zadzwonic do lekarza',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'tomorrow',
+      category: 'Zdrowie',
+      priority: 'high',
+      dueDate: tomorrow,
+      plannedHours: 0.25,
+      notes: 'Umowic termin kontroli i zapytac o wyniki badan.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-8',
+      title: 'Przeczytac rozdzial o normalizacji baz',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'tomorrow',
+      category: 'Nauka',
+      priority: 'medium',
+      dueDate: tomorrow,
+      plannedHours: 1,
+      notes: 'Skupic sie na 2NF i 3NF oraz zrobic notatki.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-9',
+      title: 'Przygotowac plan dnia na jutro',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Osobiste',
+      priority: 'low',
+      dueDate: today,
+      plannedHours: 0.25,
+      scheduledStartTime: '21:15',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-10',
+      title: 'Dopracowac chapter o badaniu konkurencji',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'later',
+      category: 'Nauka',
+      priority: 'high',
+      dueDate: closerLater,
+      plannedHours: 2,
+      notes: 'Dodac porownanie 3 aplikacji i krotkie wnioski.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-11',
+      title: 'Oddac rzeczy do pralni',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'later',
+      category: 'Dom',
+      priority: 'low',
+      dueDate: closerLater,
+      plannedHours: 0.5,
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-12',
+      title: 'Spisac backlog funkcji do MVP 3',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'later',
+      category: 'Dodatkowa praca',
+      priority: 'medium',
+      dueDate: mediumLater,
+      plannedHours: 1,
+      notes: 'Recurring tasks, lepsze filtrowanie, drobne animacje.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-13',
+      title: 'Kupic prezent urodzinowy dla Oli',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'later',
+      category: 'Rodzina',
+      priority: 'medium',
+      dueDate: fartherLater,
+      plannedHours: 1,
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-14',
+      title: 'Zrobic backup telefonu i zdjec',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'later',
+      category: 'Inne',
+      priority: 'low',
+      dueDate: farFuture,
+      plannedHours: 1.5,
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-15',
+      title: 'Zaplanowac urlop w gorach',
+      status: 'postponed',
+      isRefined: true,
+      quickAssign: 'later',
+      category: 'Osobiste',
+      priority: 'low',
+      notes: 'Na razie tylko zebrane pomysly, bez presji na termin.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-16',
+      title: 'Przeglad kodu kolegi z zespolu',
+      status: 'completed',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Praca',
+      priority: 'high',
+      dueDate: today,
+      plannedHours: 1,
+      createdAt: yesterdayIso,
+      updatedAt: nowIsoValue,
+      completedAt: nowIsoValue,
+    },
+    {
+      id: 'task-17',
+      title: 'Poranny spacer',
+      status: 'completed',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Zdrowie',
+      priority: 'low',
+      dueDate: yesterday,
+      plannedHours: 0.5,
+      createdAt: oldIso,
+      updatedAt: yesterdayIso,
+      completedAt: yesterdayIso,
+    },
+    {
+      id: 'task-18',
+      title: 'Wyslac dokumenty do urzedu',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'tomorrow',
+      category: 'Inne',
+      priority: 'high',
+      dueDate: inTwoDays,
+      plannedHours: 0.75,
+      notes: 'Sprawdzic czy wszystkie zalaczniki sa podpisane.',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-19',
+      title: 'Posprzatac kuchnie po weekendzie',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Dom',
+      priority: 'medium',
+      dueDate: today,
+      plannedHours: 0.5,
+      scheduledStartTime: '19:30',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-20',
+      title: 'Rozpisac pytania do promotora',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Nauka',
+      priority: 'high',
+      dueDate: today,
+      plannedHours: 1.25,
+      scheduledStartTime: '11:30',
+      notes: 'Pytania o zakres ewaluacji i rozdzial wdrozeniowy.',
+      createdAt: yesterdayIso,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-21',
+      title: 'Odebrac mame z dworca',
+      status: 'active',
+      isRefined: true,
+      quickAssign: 'today',
+      category: 'Rodzina',
+      priority: 'high',
+      dueDate: today,
+      plannedHours: 0.5,
+      scheduledStartTime: '17:30',
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+    {
+      id: 'task-22',
+      title: 'Zrobic research o lokalnych coworkach',
+      status: 'active',
+      isRefined: false,
+      quickAssign: 'today',
+      dueDate: today,
+      createdAt: nowIsoValue,
+      updatedAt: nowIsoValue,
+    },
+  ];
+}
+
+export function createDemoNotes(): NoteItem[] {
+  const now = nowIso();
+  return [
+    {
+      id: 'note-1',
+      title: 'Filmy na wolny wieczor',
+      content: 'Dune 2\nPerfect Days\nPast Lives\nThe Holdovers',
+      section: 'watch-later',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-2',
+      title: 'Ksiazki do przeczytania',
+      content: 'Atomic Habits\nDeep Work\nEssentialism\nHooked',
+      section: 'read-later',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-3',
+      title: 'Urodziny Ani',
+      content: 'Prezent: bon do ksiegarni albo cos z wellness.',
+      section: 'birthdays',
+      personName: 'Ania',
+      reminderDate: toDateString(addDays(new Date(), 18)),
+      reminderEnabled: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-4',
+      title: 'Co mozna mi podarowac',
+      content: 'Sluchawki, porzadny notes, bon do sklepu z kawa.',
+      section: 'my-wishes',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-5',
+      title: 'Prezenty dla Tomka',
+      content: 'Lubi LEGO Technic, gry logiczne i kawe specialty.',
+      section: 'other-wishes',
+      personName: 'Tomek',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-6',
+      title: 'Lista zakupow domowych',
+      content: 'Srodek do lazienki, worki na smieci, kapsulki do prania, reczniki papierowe.',
+      section: 'general',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-7',
+      title: 'Pomysly na weekend',
+      content: 'Wycieczka rowerowa, wystawa fotografii, kawiarnia speciality, spacer po lesie.',
+      section: 'general',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-8',
+      title: 'Podcasty do sprawdzenia',
+      content: 'Lex Fridman o produktywnosci\nAcquired\nHuberman Lab',
+      section: 'read-later',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-9',
+      title: 'Seriale dla mamy',
+      content: 'The Crown\nMare of Easttown\nOnly Murders in the Building',
+      section: 'watch-later',
+      personName: 'Mama',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'note-10',
+      title: 'Prezenty dla siebie na pozniej',
+      content: 'Nowy plecak, mechaniczna klawiatura, lampa do biurka.',
+      section: 'my-wishes',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
+export function createDemoTimeBlocks(tasks: Task[]): TimeBlock[] {
+  return tasks
+    .filter((task) => task.dueDate && task.scheduledStartTime && task.plannedHours)
+    .map((task) => ({
+      id: `block-${task.id}`,
+      taskId: task.id,
+      date: task.dueDate as string,
+      startTime: task.scheduledStartTime as string,
+      endTime: addHoursToTime(task.scheduledStartTime as string, task.plannedHours as number),
+    }));
+}
+
+export function createEmptyModeData(): ModeData {
+  return {
+    tasks: [],
+    notes: [],
+    timeBlocks: [],
+    categories: createDefaultCategories(),
+    reminders: buildReminders(),
+    pomodoro: {
+      isRunning: false,
+      mode: 'focus',
+      remainingSeconds: 25 * 60,
+      focusDurationSeconds: 25 * 60,
+      breakDurationSeconds: 5 * 60,
+    },
+    stats: {
+      waterIntake: 0,
+      movementBreaks: 0,
+      pomodoroSessions: [],
+    },
+  };
+}
+
+export function createDemoModeData(): ModeData {
+  const tasks = createDemoTasks();
+  return {
+    ...createEmptyModeData(),
+    tasks,
+    notes: createDemoNotes(),
+    timeBlocks: createDemoTimeBlocks(tasks),
+    stats: {
+      waterIntake: 5,
+      movementBreaks: 2,
+      pomodoroSessions: [
+        {
+          id: 'pomodoro-demo-1',
+          completedAt: nowIso(),
+          durationSeconds: 25 * 60,
+        },
+        {
+          id: 'pomodoro-demo-2',
+          completedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+          durationSeconds: 25 * 60,
+        },
+      ],
+    },
+  };
+}
+
+export function createInitialRootState(): RootState {
+  return {
+    isLoggedIn: false,
+    activeMode: 'demo',
+    settings: {
+      displayName: 'Moj profil',
+      theme: 'light',
+      language: 'pl',
+      fontSize: 'medium',
+      plannerStartHour: 6,
+      plannerEndHour: 23,
+      syncEnabled: false,
+    },
+    datasets: {
+      demo: createDemoModeData(),
+      personal: createEmptyModeData(),
+    },
+  };
+}
