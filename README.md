@@ -1,23 +1,23 @@
 # TaskFlow Mobile
 
-TaskFlow is a mobile task management application built with Expo, React Native and TypeScript.
+TaskFlow to mobilna aplikacja do organizacji zadań zbudowana w `Expo`, `React Native` i `TypeScript`.
 
-The app focuses on fast task capture, simple day planning, local-first usage and a practical mobile workflow without a backend.
+Aplikacja jest nastawiona na szybkie zapisywanie zadań, proste planowanie dnia, lokalne przechowywanie danych i wygodny workflow bez backendu.
 
-## Main features
+## Najważniejsze funkcje
 
-- quick task capture
-- task details with category, priority, date, duration and notes
-- day planner with scheduled and unscheduled tasks
-- queue for tasks to refine, planned later and paused tasks
-- notes module with multiple sections
-- local JSON import / export
-- light and dark theme
-- Polish, English and Ukrainian language support
-- local notifications
-- demo mode and personal mode
+- szybkie dodawanie zadań
+- szczegóły zadania: kategoria, priorytet, data, czas trwania i notatki
+- planer dnia z zadaniami zaplanowanymi i bez godziny
+- kolejki zadań do doprecyzowania, na później i wstrzymanych
+- moduł notatek z kilkoma sekcjami
+- lokalny import / eksport danych w JSON
+- motyw jasny i ciemny
+- obsługa języków: polski, angielski, ukraiński
+- lokalne powiadomienia
+- tryb demo i tryb prywatny
 
-## Tech stack
+## Technologie
 
 - Expo
 - React Native
@@ -25,43 +25,134 @@ The app focuses on fast task capture, simple day planning, local-first usage and
 - React Navigation
 - AsyncStorage
 
-## Run locally
+## Wymagania
+
+- Node.js 20+
+- npm
+- opcjonalnie:
+  - `Expo Go` na telefonie
+  - emulator Android
+  - przeglądarka internetowa
+
+## Instalacja
 
 ```powershell
 cd "X:\Praca Dyplomowa\taskflow-mobile"
 npm install
+```
+
+## Dostępne skrypty
+
+Aby zobaczyć wszystkie komendy:
+
+```powershell
+npm run
+```
+
+Podstawowy serwer developerski:
+
+```powershell
+npm run dev
+```
+
+Ta komenda uruchamia Expo na porcie `8090`.
+
+## Uruchamianie aplikacji
+
+### 1. Telefon z Expo Go
+
+```powershell
+cd "X:\Praca Dyplomowa\taskflow-mobile"
 npm start
 ```
 
-Then open the app with Expo Go or an emulator.
+Następnie:
 
-## Android build
+- zainstaluj `Expo Go` na telefonie
+- połącz telefon i komputer z tą samą siecią Wi-Fi
+- zeskanuj kod QR wyświetlony przez Expo
 
-Preview APK:
+### 2. Telefon z innej sieci lub problem z lokalnym LAN
+
+Jeżeli telefon nie jest w tej samej sieci co komputer albo lokalne połączenie nie działa, użyj tunelu:
+
+```powershell
+cd "X:\Praca Dyplomowa\taskflow-mobile"
+npm run tunnel
+```
+
+To uruchomi Expo przez `tunnel`, co zwykle działa stabilniej poza jedną siecią lokalną.
+
+### 3. Emulator Android
+
+```powershell
+cd "X:\Praca Dyplomowa\taskflow-mobile"
+npm run android
+```
+
+Wymaga to uruchomionego emulatora Android na komputerze.
+
+### 4. Przeglądarka internetowa
+
+```powershell
+cd "X:\Praca Dyplomowa\taskflow-mobile"
+npm run web
+```
+
+Wersja web została ograniczona do wąskiego kontenera, żeby wyglądała bardziej jak aplikacja mobilna i nie rozjeżdżała się na szerokim ekranie.
+
+Jeśli port `8090` jest zajęty, można uruchomić Expo na innym porcie, np.:
+
+```powershell
+npx expo start --web --port 8091
+```
+
+## Statyczny export web
+
+Aby zbudować wersję web do statycznych plików:
+
+```powershell
+cd "X:\Praca Dyplomowa\taskflow-mobile"
+npm run build:web
+```
+
+Pliki zostaną zapisane w katalogu `web-dist/`.
+
+## Build Android
+
+### APK do instalacji testowej
 
 ```powershell
 cd "X:\Praca Dyplomowa\taskflow-mobile"
 npm run build:android:preview
 ```
 
-Production AAB:
+### Development build
+
+```powershell
+npm run build:android:development
+```
+
+### Produkcyjny AAB
 
 ```powershell
 npm run build:android:production
 ```
 
-## Project structure
+## Struktura projektu
 
-- `src/screens` - application screens
-- `src/components` - reusable UI components
-- `src/context` - app state and actions
-- `src/data` - demo and initial data
-- `src/navigation` - navigation setup
-- `src/utils` - helpers and date logic
-- `assets` - icons and static assets
+- `src/screens` - ekrany aplikacji
+- `src/components` - komponenty wielokrotnego użytku
+- `src/context` - stan aplikacji i akcje
+- `src/data` - dane demo i dane początkowe
+- `src/navigation` - konfiguracja nawigacji
+- `src/utils` - helpery i logika dat
+- `assets` - ikony i statyczne zasoby
 
-## Notes
+## Uwagi
 
-- The application is designed to work without a backend.
-- User data is stored locally on the device.
-- Demo mode contains expanded mock data for presentation and testing.
+- aplikacja działa bez backendu
+- dane użytkownika są zapisywane lokalnie na urządzeniu
+- tryb demo ma rozszerzone mock dane do prezentacji i testów
+- wersja web nadaje się do szybkiego klikania i przeglądu interfejsu
+- część funkcji mobilnych, szczególnie powiadomienia, najlepiej testować na Android buildzie
