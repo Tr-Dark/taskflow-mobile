@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -132,6 +133,8 @@ export function PlannerScreen({ navigation }: Props) {
   );
   const plannerDurationHours = state.settings.plannerEndHour - state.settings.plannerStartHour;
   const pageWidth = Math.max(280, windowWidth - spacing.lg * 2 - 8);
+  const isDesktopWeb = Platform.OS === 'web' && windowWidth >= 768;
+  const plannerDialogWidth = Math.min(560, Math.max(320, windowWidth - 32));
 
   const categoryColorMap = useMemo(
     () => new Map(activeData.categories.map((category) => [category.name, category.color])),
@@ -422,15 +425,30 @@ export function PlannerScreen({ navigation }: Props) {
       </ScrollView>
 
       <Modal visible={!!selectedSlot} transparent animationType="slide" onRequestClose={() => setSelectedSlot(null)}>
-        <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+        <View
+          style={[
+            styles.modalBackdrop,
+            isDesktopWeb ? styles.modalBackdropCentered : null,
+            { backgroundColor: colors.overlay },
+          ]}
+        >
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedSlot(null)} />
           <View
             style={[
               styles.modalSheet,
+              isDesktopWeb
+                ? {
+                    width: plannerDialogWidth,
+                    maxHeight: '80%',
+                    borderRadius: radius.xl,
+                    marginBottom: 0,
+                    paddingBottom: spacing.xl,
+                  }
+                : null,
               {
                 backgroundColor: colors.surface,
-                paddingBottom: Math.max(insets.bottom, 16) + 8,
-                marginBottom: Math.max(insets.bottom, 8),
+                paddingBottom: isDesktopWeb ? spacing.xl : Math.max(insets.bottom, 16) + 8,
+                marginBottom: isDesktopWeb ? 0 : Math.max(insets.bottom, 8),
               },
             ]}
           >
@@ -919,6 +937,11 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  modalBackdropCentered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
   modalSheet: {
     borderTopLeftRadius: 28,

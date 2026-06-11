@@ -1,0 +1,53 @@
+TaskFlow - lista zmian do laby 8
+
+Zmiany zostały wybrane na podstawie wyników testów z laby 7 i dotyczą małych, ale widocznych poprawek UI/UX oraz kilku praktycznych dopracowań funkcjonalnych.
+
+1. Quick add
+- dodano podpowiedź, gdzie będzie widoczne zadanie po wyborze Dziś / Jutro / Później
+- poprawiono komunikaty po dodaniu zadania, aby od razu mówiły użytkownikowi, gdzie dalej go szukać
+
+2. Kolejka zadań
+- poprawiono logikę sekcji "Zaplanowane wkrótce", tak aby obejmowała także zadania na jutro
+- doprecyzowano opisy działania kolejki i FAQ
+
+3. Ekran Today
+- wzmocniono komunikat przy zadaniach wymagających doprecyzowania, aby sugerował przejście do Kolejki
+- przy zamykaniu zadania z nieukończoną checklistą dodano wybór: zamknąć samo zadanie albo od razu domknąć checklistę
+
+4. Szczegóły zadania
+- dodano podpowiedzi po szybkich akcjach Na dziś / Na jutro / Później / Wstrzymaj, aby było jasne, gdzie potem szukać zadania
+- uporządkowano pole notatek: placeholder i helper text są teraz spójne z tłumaczeniami
+- dodano przycisk klonowania zadania z wyborem terminu kopii: dziś, jutro lub później
+
+5. Checklista
+- dodano przycisk "Zaznacz wszystkie"
+- gdy wszystkie punkty są zaznaczone, można jednym kliknięciem odznaczyć całą checklistę
+- przy oznaczaniu zadania jako wykonanego można opcjonalnie automatycznie zaznaczyć wszystkie brakujące punkty checklisty
+
+6. Notatki
+- dodano możliwość przenoszenia notatek do archiwum z poziomu edycji notatki
+- zarchiwizowane notatki znikają z głównej listy, ale nie są usuwane
+- dodano osobny widok archiwum notatek
+
+7. Ustawienia
+- dodano przycisk przejścia do archiwum notatek
+- w ustawieniach pokazuje się także liczba zarchiwizowanych notatek
+
+8. Język i dane demo
+- poprawiono wybrane teksty pomocnicze w interfejsie
+- dodano kolejne drobne poprawki językowe i porządkowe, aby interfejs był bardziej spójny
+
+Pliki objęte zmianami:
+- src/screens/QuickAddScreen.tsx
+- src/screens/QueueScreen.tsx
+- src/screens/TodayScreen.tsx
+- src/screens/TaskDetailsScreen.tsx
+- src/screens/NotesScreen.tsx
+- src/screens/NoteEditorScreen.tsx
+- src/screens/NotesArchiveScreen.tsx
+- src/screens/SettingsScreen.tsx
+- src/context/AppContext.tsx
+- src/navigation/AppNavigator.tsx
+- src/i18n.ts
+- src/data/demoData.ts
+- src/types.ts

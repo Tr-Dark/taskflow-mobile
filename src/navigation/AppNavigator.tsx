@@ -10,6 +10,7 @@ import { FaqScreen } from '../screens/FaqScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { NoteEditorScreen } from '../screens/NoteEditorScreen';
+import { NotesArchiveScreen } from '../screens/NotesArchiveScreen';
 import { NotesScreen } from '../screens/NotesScreen';
 import { PlannerScreen } from '../screens/PlannerScreen';
 import { QueueScreen } from '../screens/QueueScreen';
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   QuickAdd: undefined;
   TaskDetails: { taskId: string };
   NoteEditor: { noteId?: string } | undefined;
+  NotesArchive: undefined;
   History: undefined;
   Settings: undefined;
   Faq: undefined;
@@ -101,6 +103,7 @@ export function AppNavigator() {
           />
           <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
           <Stack.Screen name="NoteEditor" component={NoteEditorScreen} />
+          <Stack.Screen name="NotesArchive" component={NotesArchiveScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Faq" component={FaqScreen} />

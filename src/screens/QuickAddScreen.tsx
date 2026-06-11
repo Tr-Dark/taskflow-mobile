@@ -26,6 +26,14 @@ export function QuickAddScreen({ navigation }: Props) {
     { value: 'tomorrow', label: t('optionTomorrow') },
     { value: 'later', label: t('optionLater') },
   ];
+  const destinationHint =
+    quickAssign === 'today'
+      ? t('quickAddTodayHint')
+      : quickAssign === 'tomorrow'
+        ? t('quickAddTomorrowHint')
+        : t('quickAddLaterQueueHint');
+  const destinationIcon =
+    quickAssign === 'today' ? 'sunny-outline' : quickAssign === 'tomorrow' ? 'calendar-outline' : 'list-outline';
 
   function handleSubmit() {
     if (!title.trim()) {
@@ -79,7 +87,7 @@ export function QuickAddScreen({ navigation }: Props) {
             label={t('quickAddWhat')}
             value={title}
             onChangeText={setTitle}
-            placeholder="Na przykład: Kupić mleko"
+            placeholder={t('quickAddExamplePlaceholder')}
             autoFocus
           />
 
@@ -115,6 +123,20 @@ export function QuickAddScreen({ navigation }: Props) {
                   </Pressable>
                 );
               })}
+            </View>
+          </View>
+
+          <View style={[styles.destinationCard, { backgroundColor: colors.primarySoft, borderColor: colors.primary }]}>
+            <View style={[styles.destinationIcon, { backgroundColor: colors.surface }]}>
+              <Ionicons name={destinationIcon} size={18} color={colors.primary} />
+            </View>
+            <View style={styles.destinationContent}>
+              <Text style={[styles.destinationTitle, { color: colors.primary, fontSize: scaleFont(14) }]}>
+                {t('quickAddWhereNext')}
+              </Text>
+              <Text style={[styles.destinationText, { color: colors.mutedText, fontSize: scaleFont(13) }]}>
+                {destinationHint}
+              </Text>
             </View>
           </View>
 
@@ -198,6 +220,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   optionTextActive: {},
+  destinationCard: {
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: 14,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  destinationIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  destinationContent: {
+    flex: 1,
+    gap: 4,
+  },
+  destinationTitle: {
+    fontWeight: '700',
+  },
+  destinationText: {
+    lineHeight: 18,
+  },
   helper: {
     textAlign: 'center',
   },

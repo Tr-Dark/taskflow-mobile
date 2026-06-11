@@ -31,9 +31,12 @@ export function NotesScreen({ navigation }: Props) {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const archivedNotesCount = activeData.notes.filter((note) => note.archivedAt).length;
 
   const filteredNotes = useMemo(() => {
-    const notes = [...activeData.notes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const notes = [...activeData.notes]
+      .filter((note) => !note.archivedAt)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return notes.filter((note) => {
       if (filter !== 'all' && note.section !== filter) {
         return false;
@@ -101,6 +104,9 @@ export function NotesScreen({ navigation }: Props) {
           <Text style={[styles.infoTitle, { color: colors.primary, fontSize: scaleFont(16) }]}>{t('notesHowToTitle')}</Text>
           <Text style={[styles.infoText, { color: colors.mutedText, fontSize: scaleFont(14), lineHeight: scaleLineHeight(20) }]}>
             {t('notesHowToText')}
+          </Text>
+          <Text style={[styles.archiveHint, { color: colors.primary, fontSize: scaleFont(13), lineHeight: scaleLineHeight(18) }]}>
+            {t('notesArchiveHint', { count: archivedNotesCount })}
           </Text>
         </SurfaceCard>
 
@@ -233,6 +239,10 @@ const styles = StyleSheet.create({
   },
   infoText: {
     marginTop: 6,
+  },
+  archiveHint: {
+    marginTop: 8,
+    fontWeight: '600',
   },
   list: {
     gap: 12,

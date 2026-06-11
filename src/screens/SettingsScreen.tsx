@@ -83,6 +83,7 @@ export function SettingsScreen({ navigation }: Props) {
     () => activeData.categories.find((category) => category.name === selectedCategoryName) ?? activeData.categories[0],
     [activeData.categories, selectedCategoryName],
   );
+  const archivedNotesCount = activeData.notes.filter((note) => note.archivedAt).length;
 
   function handleSaveProfile() {
     updateSettings({ displayName: displayName.trim() || 'Mój profil' });
@@ -385,6 +386,19 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={[styles.sectionTitle, { color: colors.text, fontSize: scaleFont(22) }]}>{t('settingsHelp')}</Text>
           <Text style={[styles.helper, { color: colors.mutedText, fontSize: scaleFont(14) }]}>{t('settingsHelpHint')}</Text>
           <PrimaryButton title={t('settingsOpenFaq')} variant="secondary" onPress={() => navigation.navigate('Faq')} style={{ marginTop: 16 }} />
+        </SurfaceCard>
+
+        <SurfaceCard>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontSize: scaleFont(22) }]}>{t('settingsNotesArchive')}</Text>
+          <Text style={[styles.helper, { color: colors.mutedText, fontSize: scaleFont(14) }]}>
+            {t('settingsNotesArchiveHint', { count: archivedNotesCount })}
+          </Text>
+          <PrimaryButton
+            title={t('settingsOpenNotesArchive')}
+            variant="secondary"
+            onPress={() => navigation.navigate('NotesArchive')}
+            style={{ marginTop: 16 }}
+          />
         </SurfaceCard>
 
         <SurfaceCard>

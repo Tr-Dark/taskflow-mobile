@@ -57,7 +57,7 @@ function displayDate(value: string | undefined, fallbackLabel: string) {
 }
 
 export function TaskDetailsScreen({ route, navigation }: Props) {
-  const { activeData, state, updateTask, deleteTask, quickMoveTask, clearTaskSchedule } = useApp();
+  const { activeData, state, updateTask, deleteTask, cloneTask, quickMoveTask, clearTaskSchedule } = useApp();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { scaleFont, t } = useI18n();
@@ -98,7 +98,11 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [durationModalVisible, setDurationModalVisible] = useState(false);
   const [timeModalVisible, setTimeModalVisible] = useState(false);
+  const [cloneModalVisible, setCloneModalVisible] = useState(false);
+  const [checklistDecisionVisible, setChecklistDecisionVisible] = useState(false);
+  const [cloneExpanded, setCloneExpanded] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [quickMoveHint, setQuickMoveHint] = useState<string | null>(null);
 
   const [draft, setDraft] = useState<TaskDraft>(() => ({
     title: task?.title ?? '',
@@ -124,6 +128,17 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
   const categories = activeData.categories;
   const subtasks = draft.subtasks ?? [];
   const completedSubtasks = subtasks.filter((item) => item.completed).length;
+  const allSubtasksCompleted = subtasks.length > 0 && completedSubtasks === subtasks.length;
+  const hasUncheckedSubtasks = subtasks.some((item) => !item.completed);
+  const cloneOptions: PickerOption<'today' | 'tomorrow' | 'later'>[] = [
+    { value: 'today', label: t('optionToday') },
+    { value: 'tomorrow', label: t('optionTomorrow') },
+    { value: 'later', label: t('optionLater') },
+  ];
+  const checklistCloseOptions: PickerOption<'task-only' | 'task-and-checklist'>[] = [
+    { value: 'task-only', label: t('taskChecklistCloseTaskOnly') },
+    { value: 'task-and-checklist', label: t('taskChecklistCloseTaskAndChecklist') },
+  ];
 
   function addSubtask() {
     const trimmed = newSubtaskTitle.trim();
@@ -161,25 +176,46 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
     }));
   }
 
-  function handleSave() {
-    if (!draft.title.trim()) {
+  function setAllSubtasksCompleted(completed: boolean) {
+    setDraft((prev) => ({
+      ...prev,
+      status: !completed && prev.status === 'completed' ? 'active' : prev.status,
+      subtasks: (prev.subtasks ?? []).map((item) => ({ ...item, completed })),
+    }));
+  }
+
+  function persistDraft(nextDraft: TaskDraft) {
+    if (!nextDraft.title.trim()) {
       Alert.alert(t('taskMissingTitle'), t('taskMissingBody'));
       return;
     }
-    if (draft.scheduledStartTime && !draft.dueDate) {
+    if (nextDraft.scheduledStartTime && !nextDraft.dueDate) {
       Alert.alert(t('taskMissingDateTitle'), t('taskMissingDateBody'));
       return;
     }
-    if (draft.scheduledStartTime && !draft.plannedHours) {
+    if (nextDraft.scheduledStartTime && !nextDraft.plannedHours) {
       Alert.alert(t('taskMissingDurationTitle'), t('taskMissingDurationBody'));
       return;
     }
 
     updateTask(currentTask.id, {
-      ...draft,
-      title: draft.title.trim(),
+      ...nextDraft,
+      title: nextDraft.title.trim(),
     });
     navigation.goBack();
+  }
+
+  function handleStatusChange(status: TaskStatus) {
+    if (status !== 'completed' || !subtasks.length || !hasUncheckedSubtasks) {
+      setDraft((prev) => ({ ...prev, status }));
+      return;
+    }
+
+    setChecklistDecisionVisible(true);
+  }
+
+  function handleSave() {
+    persistDraft(draft);
   }
 
   function handleDelete() {
@@ -198,6 +234,17 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
 
   function applyQuickMove(action: 'today' | 'tomorrow' | 'later' | 'later-far' | 'postpone') {
     quickMoveTask(currentTask.id, action);
+    setQuickMoveHint(
+      action === 'today'
+        ? t('taskQuickHintToday')
+        : action === 'tomorrow'
+          ? t('taskQuickHintTomorrow')
+          : action === 'later'
+            ? t('taskQuickHintLater')
+            : action === 'later-far'
+              ? t('taskQuickHintFar')
+              : t('taskQuickHintPostponed'),
+    );
     setDraft((prev) => ({
       ...prev,
       dueDate:
@@ -264,6 +311,12 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
           <QuickAction label={t('taskQuickPostpone')} danger onPress={() => applyQuickMove('postpone')} />
         </View>
 
+        {quickMoveHint ? (
+          <SurfaceCard style={[styles.infoCard, { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft }]}>
+            <Text style={[styles.infoText, { color: colors.primary, fontSize: scaleFont(14) }]}>{quickMoveHint}</Text>
+          </SurfaceCard>
+        ) : null}
+
         <AppTextInput
           label={t('taskTitle')}
           value={draft.title}
@@ -279,7 +332,7 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
                 <Pressable
                   key={status.value}
                   accessibilityRole="button"
-                  onPress={() => setDraft((prev) => ({ ...prev, status: status.value }))}
+                  onPress={() => handleStatusChange(status.value)}
                   style={[
                     styles.priorityPill,
                     { borderColor: colors.border, backgroundColor: colors.surface },
@@ -402,8 +455,8 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
           value={draft.notes ?? ''}
           onChangeText={(notes) => setDraft((prev) => ({ ...prev, notes }))}
           multiline
-          placeholder="Dodaj szczegóły lub przypomnienia..."
-          helperText="Przy dłuższej treści ekran podniesie się nad klawiaturę."
+          placeholder={t('taskNotesPlaceholder')}
+          helperText={t('taskNotesHelper')}
         />
 
         <View style={styles.group}>
@@ -420,6 +473,25 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
           </View>
 
           <SurfaceCard style={styles.checklistCard}>
+            {subtasks.length ? (
+              <>
+                <View style={styles.checklistActionRow}>
+                  <PrimaryButton
+                    title={allSubtasksCompleted ? t('taskChecklistClearAll') : t('taskChecklistCompleteAll')}
+                    variant="secondary"
+                    onPress={() => setAllSubtasksCompleted(!allSubtasksCompleted)}
+                  />
+                </View>
+                <Text style={[styles.fieldHelper, { color: colors.mutedText, fontSize: scaleFont(12) }]}>
+                  {draft.status === 'completed'
+                    ? t('taskChecklistCompletedHint')
+                    : allSubtasksCompleted
+                      ? t('taskChecklistReadyHint')
+                      : t('taskChecklistPendingHint')}
+                </Text>
+              </>
+            ) : null}
+
             <View style={styles.addSubtaskRow}>
               <View style={{ flex: 1 }}>
                 <AppTextInput
@@ -506,6 +578,30 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
             </Text>
           </SurfaceCard>
         ) : null}
+
+        <SurfaceCard style={styles.cloneCard}>
+          <Pressable
+            style={styles.cloneHeader}
+            onPress={() => setCloneExpanded((current) => !current)}
+            accessibilityRole="button"
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.label, { color: colors.text, fontSize: scaleFont(14) }]}>{t('taskCloneTitle')}</Text>
+              <Text style={[styles.fieldHelper, { color: colors.mutedText, fontSize: scaleFont(13) }]}>
+                {t('taskCloneHint')}
+              </Text>
+            </View>
+            <Ionicons
+              name={cloneExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+              size={20}
+              color={colors.mutedText}
+            />
+          </Pressable>
+
+          {cloneExpanded ? (
+            <PrimaryButton title={t('taskCloneAction')} variant="secondary" onPress={() => setCloneModalVisible(true)} />
+          ) : null}
+        </SurfaceCard>
       </ScrollView>
 
       <View
@@ -555,6 +651,36 @@ export function TaskDetailsScreen({ route, navigation }: Props) {
         clearLabel={t('taskClearTime')}
         onClear={() => setDraft((prev) => ({ ...prev, scheduledStartTime: undefined }))}
         onClose={() => setTimeModalVisible(false)}
+      />
+
+      <OptionPickerModal
+        visible={cloneModalVisible}
+        title={t('taskCloneModalTitle')}
+        options={cloneOptions}
+        onSelect={(value) => {
+          cloneTask(currentTask.id, value, draft);
+        }}
+        onClose={() => setCloneModalVisible(false)}
+      />
+
+      <OptionPickerModal
+        visible={checklistDecisionVisible}
+        title={t('taskChecklistCompletePromptTitle')}
+        description={t('taskChecklistCompletePromptBody')}
+        options={checklistCloseOptions}
+        onSelect={(value) => {
+          if (value === 'task-only') {
+            setDraft((prev) => ({ ...prev, status: 'completed' }));
+          } else {
+            setDraft((prev) => ({
+              ...prev,
+              status: 'completed',
+              subtasks: (prev.subtasks ?? []).map((item) => ({ ...item, completed: true })),
+            }));
+          }
+          setChecklistDecisionVisible(false);
+        }}
+        onClose={() => setChecklistDecisionVisible(false)}
       />
     </KeyboardAvoidingView>
   );
@@ -657,6 +783,19 @@ const styles = StyleSheet.create({
   quickActionText: {
     fontWeight: '700',
   },
+  infoCard: {},
+  infoText: {
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  cloneCard: {
+    gap: 10,
+  },
+  cloneHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   group: {
     gap: 12,
   },
@@ -721,6 +860,9 @@ const styles = StyleSheet.create({
   },
   checklistCard: {
     gap: 14,
+  },
+  checklistActionRow: {
+    gap: 10,
   },
   addSubtaskRow: {
     flexDirection: 'row',

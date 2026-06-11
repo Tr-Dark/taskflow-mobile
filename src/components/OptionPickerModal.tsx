@@ -1,4 +1,5 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '../i18n';
 import { radius, spacing, useThemeColors } from '../theme';
@@ -12,8 +13,10 @@ export interface PickerOption<T extends string = string> {
 interface OptionPickerModalProps<T extends string = string> {
   visible: boolean;
   title: string;
+  description?: string;
   options: PickerOption<T>[];
   selectedValue?: T;
+  scrollToSelectedOnOpen?: boolean;
   onSelect: (value: T) => void;
   onClose: () => void;
   allowClear?: boolean;
@@ -24,8 +27,10 @@ interface OptionPickerModalProps<T extends string = string> {
 export function OptionPickerModal<T extends string = string>({
   visible,
   title,
+  description,
   options,
   selectedValue,
+  scrollToSelectedOnOpen = true,
   onSelect,
   onClose,
   allowClear,
@@ -34,26 +39,67 @@ export function OptionPickerModal<T extends string = string>({
 }: OptionPickerModalProps<T>) {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { width } = useWindowDimensions();
   const { scaleFont, t } = useI18n();
   const resolvedClearLabel = clearLabel ?? t('commonClear');
+  const isDesktopWeb = Platform.OS === 'web' && width >= 768;
+  const dialogWidth = Math.min(560, Math.max(320, width - 32));
+  const sheetPaddingBottom = isDesktopWeb ? spacing.xl : Math.max(insets.bottom, 16) + 8;
+  const sheetMarginBottom = isDesktopWeb ? 0 : Math.max(insets.bottom, 8);
+  const scrollRef = useRef<ScrollView | null>(null);
+
+  useEffect(() => {
+    if (!visible || !scrollToSelectedOnOpen || !selectedValue) {
+      return;
+    }
+
+    const selectedIndex = options.findIndex((option) => option.value === selectedValue);
+    if (selectedIndex < 0) {
+      return;
+    }
+
+    const estimatedRowHeight = 66;
+    const estimatedGap = 10;
+    const offset = Math.max(0, selectedIndex * (estimatedRowHeight + estimatedGap) - 80);
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: offset, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [options, scrollToSelectedOnOpen, selectedValue, visible]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+      <View
+        style={[
+          styles.backdrop,
+          isDesktopWeb ? styles.backdropCentered : null,
+          { backgroundColor: colors.overlay },
+        ]}
+      >
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" />
         <View
           style={[
             styles.sheet,
+            isDesktopWeb
+              ? {
+                  width: dialogWidth,
+                  maxHeight: '80%',
+                  borderRadius: radius.xl,
+                }
+              : null,
             {
               backgroundColor: colors.surface,
-              paddingBottom: Math.max(insets.bottom, 16) + 8,
-              marginBottom: Math.max(insets.bottom, 8),
+              paddingBottom: sheetPaddingBottom,
+              marginBottom: sheetMarginBottom,
             },
           ]}
         >
           <Text style={[styles.title, { color: colors.text, fontSize: scaleFont(22) }]}>{title}</Text>
+          {description ? (
+            <Text style={[styles.description, { color: colors.mutedText, fontSize: scaleFont(14) }]}>{description}</Text>
+          ) : null}
 
-          <ScrollView style={{ maxHeight: 380 }}>
+          <ScrollView ref={scrollRef} style={{ maxHeight: 380 }}>
             {options.map((option) => {
               const selected = option.value === selectedValue;
               return (
@@ -129,6 +175,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  backdropCentered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
   sheet: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -138,6 +189,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '800',
+  },
+  description: {
+    lineHeight: 20,
   },
   option: {
     minHeight: 56,

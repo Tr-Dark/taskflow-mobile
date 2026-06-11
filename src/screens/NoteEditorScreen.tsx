@@ -27,7 +27,7 @@ import { getNoteSectionLabel, getNoteSectionOptions } from '../utils/notes';
 type Props = NativeStackScreenProps<RootStackParamList, 'NoteEditor'>;
 
 export function NoteEditorScreen({ route, navigation }: Props) {
-  const { activeData, addNote, updateNote, deleteNote } = useApp();
+  const { activeData, addNote, updateNote, deleteNote, archiveNote, restoreNote } = useApp();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { language, scaleFont, scaleLineHeight, t } = useI18n();
@@ -91,6 +91,19 @@ export function NoteEditorScreen({ route, navigation }: Props) {
         },
       },
     ]);
+  }
+
+  function handleArchiveToggle() {
+    if (!note) {
+      return;
+    }
+
+    if (note.archivedAt) {
+      restoreNote(note.id);
+    } else {
+      archiveNote(note.id);
+    }
+    navigation.goBack();
   }
 
   return (
@@ -209,7 +222,16 @@ export function NoteEditorScreen({ route, navigation }: Props) {
           },
         ]}
       >
-        <PrimaryButton title={t('noteEditorSave')} onPress={handleSave} />
+        <View style={styles.footerActions}>
+          {note ? (
+            <PrimaryButton
+              title={note.archivedAt ? t('notesArchiveRestoreAction') : t('notesArchiveMoveAction')}
+              variant="secondary"
+              onPress={handleArchiveToggle}
+            />
+          ) : null}
+          <PrimaryButton title={t('noteEditorSave')} onPress={handleSave} />
+        </View>
       </View>
 
       <OptionPickerModal
@@ -331,5 +353,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
+  },
+  footerActions: {
+    gap: 10,
   },
 });

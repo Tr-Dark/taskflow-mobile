@@ -7,6 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTextInput } from '../components/AppTextInput';
+import { OptionPickerModal, PickerOption } from '../components/OptionPickerModal';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { TaskRow } from '../components/TaskRow';
 import { useApp } from '../context/AppContext';
@@ -14,7 +15,7 @@ import { useI18n } from '../i18n';
 import { MainTabParamList, RootStackParamList } from '../navigation/AppNavigator';
 import { radius, spacing, useThemeColors } from '../theme';
 import { Task } from '../types';
-import { addDays, formatPolishDate, todayDateString, toDateString } from '../utils/date';
+import { addDays, formatPolishDate, generateUpcomingDateOptionsLocalized, todayDateString, toDateString } from '../utils/date';
 
 type ScreenProps = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Today'>,
@@ -31,14 +32,16 @@ function getInitials(name: string) {
 }
 
 export function TodayScreen({ navigation }: ScreenProps) {
-  const { activeData, state, toggleTaskStatus, quickMoveTask } = useApp();
+  const { activeData, state, toggleTaskStatus, updateTask, quickMoveTask } = useApp();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const { scaleFont, t } = useI18n();
+  const { language, scaleFont, t } = useI18n();
   const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'needs-refine'>('all');
+  const [pendingChecklistTask, setPendingChecklistTask] = useState<Task | null>(null);
   const today = todayDateString();
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -89,9 +92,39 @@ export function TodayScreen({ navigation }: ScreenProps) {
     { key: 'completed' as const, label: t('todayFilterCompleted') },
     { key: 'needs-refine' as const, label: t('todayFilterNeedsRefine') },
   ];
+  const checklistCloseOptions: PickerOption<'task-only' | 'task-and-checklist'>[] = [
+    { value: 'task-only', label: t('taskChecklistCloseTaskOnly') },
+    { value: 'task-and-checklist', label: t('taskChecklistCloseTaskAndChecklist') },
+  ];
+  const datePickerOptions = useMemo(
+    () =>
+      generateUpcomingDateOptionsLocalized(
+        language,
+        { today: t('optionToday'), tomorrow: t('optionTomorrow') },
+        45,
+      ),
+    [language, t],
+  );
 
   function changeDay(days: number) {
     setSelectedDate((current) => toDateString(addDays(new Date(`${current}T12:00:00`), days)));
+  }
+
+  function handleToggleTask(task: Task) {
+    if (task.status === 'completed') {
+      toggleTaskStatus(task.id);
+      return;
+    }
+
+    const subtasks = task.subtasks ?? [];
+    const hasUncheckedSubtasks = subtasks.some((item) => !item.completed);
+
+    if (!subtasks.length || !hasUncheckedSubtasks) {
+      toggleTaskStatus(task.id);
+      return;
+    }
+
+    setPendingChecklistTask(task);
   }
 
   const fabBottom = Math.max(insets.bottom, 12) + 24;
@@ -108,14 +141,14 @@ export function TodayScreen({ navigation }: ScreenProps) {
         ]}
       >
         <View style={styles.header}>
-          <View>
+          <Pressable onPress={() => setDatePickerVisible(true)} accessibilityRole="button" style={styles.headerDateBlock}>
             <Text style={[styles.dateLabel, { color: colors.mutedText, fontSize: scaleFont(14) }]}>
               {formatPolishDate(selectedDate, { weekday: 'long', day: 'numeric', month: 'long' })}
             </Text>
             <Text style={[styles.title, { color: colors.text, fontSize: scaleFont(32) }]}>
               {selectedDate === today ? t('todayTitle') : t('todayReviewTitle')}
             </Text>
-          </View>
+          </Pressable>
           <View style={styles.headerActions}>
             <Pressable
               style={[styles.historyButton, { backgroundColor: colors.surfaceMuted }]}
@@ -146,14 +179,18 @@ export function TodayScreen({ navigation }: ScreenProps) {
           >
             <Ionicons name="chevron-back" size={20} color={colors.text} />
           </Pressable>
-          <View style={[styles.switcherBadge, { backgroundColor: colors.primarySoft }]}>
+          <Pressable
+            style={[styles.switcherBadge, { backgroundColor: colors.primarySoft }]}
+            onPress={() => setDatePickerVisible(true)}
+            accessibilityRole="button"
+          >
             <Ionicons name="calendar-outline" size={16} color={colors.primary} />
             <Text style={[styles.switcherText, { color: colors.primary, fontSize: scaleFont(14) }]}>
               {selectedDate === today
                 ? t('todayTitle')
                 : formatPolishDate(selectedDate, { weekday: 'short', day: 'numeric', month: 'short' })}
             </Text>
-          </View>
+          </Pressable>
           <Pressable
             style={[styles.switcherButton, { backgroundColor: colors.surfaceMuted }]}
             onPress={() => changeDay(1)}
@@ -242,7 +279,7 @@ export function TodayScreen({ navigation }: ScreenProps) {
                     key={task.id}
                     task={task}
                     onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })}
-                    onToggleStatus={() => toggleTaskStatus(task.id)}
+                    onToggleStatus={() => handleToggleTask(task)}
                     onPause={() => quickMoveTask(task.id, 'postpone')}
                   />
                 ))
@@ -269,7 +306,7 @@ export function TodayScreen({ navigation }: ScreenProps) {
                     key={task.id}
                     task={task}
                     onPress={() => navigation.navigate('TaskDetails', { taskId: task.id })}
-                    onToggleStatus={() => toggleTaskStatus(task.id)}
+                    onToggleStatus={() => handleToggleTask(task)}
                   />
                 ))
               ) : (
@@ -325,6 +362,44 @@ export function TodayScreen({ navigation }: ScreenProps) {
       >
         <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color="#fff" />
       </Pressable>
+
+      <OptionPickerModal
+        visible={!!pendingChecklistTask}
+        title={t('taskChecklistCompletePromptTitle')}
+        description={t('taskChecklistCompletePromptBody')}
+        options={checklistCloseOptions}
+        onSelect={(value) => {
+          if (!pendingChecklistTask) {
+            return;
+          }
+
+          if (value === 'task-only') {
+            toggleTaskStatus(pendingChecklistTask.id);
+          } else {
+            const subtasks = pendingChecklistTask.subtasks ?? [];
+            updateTask(pendingChecklistTask.id, {
+              title: pendingChecklistTask.title,
+              status: 'completed',
+              subtasks: subtasks.map((item) => ({ ...item, completed: true })),
+            });
+          }
+          setPendingChecklistTask(null);
+        }}
+        onClose={() => setPendingChecklistTask(null)}
+      />
+
+      <OptionPickerModal
+        visible={datePickerVisible}
+        title={t('todayChooseDateTitle')}
+        description={t('todayChooseDateHint')}
+        options={datePickerOptions}
+        selectedValue={selectedDate}
+        allowClear
+        clearLabel={t('todayJumpToday')}
+        onClear={() => setSelectedDate(today)}
+        onSelect={(value) => setSelectedDate(value)}
+        onClose={() => setDatePickerVisible(false)}
+      />
     </View>
   );
 }
@@ -415,6 +490,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerDateBlock: {
+    flex: 1,
   },
   dateLabel: {
     textTransform: 'capitalize',

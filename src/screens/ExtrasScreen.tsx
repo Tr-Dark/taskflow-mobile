@@ -1,6 +1,8 @@
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OptionPickerModal, PickerOption } from '../components/OptionPickerModal';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { useApp } from '../context/AppContext';
@@ -22,7 +24,7 @@ export function ExtrasScreen({}: Props) {
   const {
     activeData,
     setReminderEnabled,
-    cycleReminderInterval,
+    setReminderInterval,
     addWaterIntake,
     addMovementBreak,
     startPausePomodoro,
@@ -32,6 +34,15 @@ export function ExtrasScreen({}: Props) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { scaleFont, scaleLineHeight, t } = useI18n();
+  const [intervalReminderType, setIntervalReminderType] = useState<'water' | 'movement' | 'break' | null>(null);
+  const reminderIntervalOptions: PickerOption<string>[] = useMemo(
+    () =>
+      [15, 30, 45, 60, 90, 120].map((value) => ({
+        value: String(value),
+        label: t('reminderEvery', { value }),
+      })),
+    [t],
+  );
 
   const todayPomodoros = activeData.stats.pomodoroSessions.filter((session) =>
     session.completedAt.startsWith(new Date().toISOString().slice(0, 10)),
@@ -107,7 +118,11 @@ export function ExtrasScreen({}: Props) {
               />
             </View>
             <View style={styles.reminderActions}>
-              <PrimaryButton title={t('reminderChangeInterval')} variant="ghost" onPress={() => cycleReminderInterval(reminder.type)} />
+              <PrimaryButton
+                title={t('reminderChangeInterval')}
+                variant="ghost"
+                onPress={() => setIntervalReminderType(reminder.type)}
+              />
             </View>
           </SurfaceCard>
         ))}
@@ -143,6 +158,26 @@ export function ExtrasScreen({}: Props) {
           <PrimaryButton title={t('statsAddMovement')} variant="secondary" onPress={addMovementBreak} style={{ flex: 1 }} />
         </View>
       </SurfaceCard>
+
+      <OptionPickerModal
+        visible={!!intervalReminderType}
+        title={t('reminderChangeInterval')}
+        description={t('reminderIntervalHint')}
+        options={reminderIntervalOptions}
+        selectedValue={
+          intervalReminderType
+            ? String(activeData.reminders.find((reminder) => reminder.type === intervalReminderType)?.interval ?? '')
+            : undefined
+        }
+        onSelect={(value) => {
+          if (!intervalReminderType) {
+            return;
+          }
+          setReminderInterval(intervalReminderType, Number(value));
+          setIntervalReminderType(null);
+        }}
+        onClose={() => setIntervalReminderType(null)}
+      />
     </ScrollView>
   );
 }

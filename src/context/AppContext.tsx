@@ -52,6 +52,7 @@ interface AppContextValue {
   updateTask: (taskId: string, draft: TaskDraft) => void;
   deleteTask: (taskId: string) => void;
   toggleTaskStatus: (taskId: string) => void;
+  cloneTask: (taskId: string, quickAssign: QuickAssign, draftOverride?: TaskDraft) => string | null;
   quickMoveTask: (taskId: string, action: QuickAssign | 'later-far' | 'postpone') => void;
   assignTaskToSlot: (taskId: string, date: string, startTime: string, durationHours: number) => boolean;
   clearTaskSchedule: (taskId: string) => void;
@@ -59,8 +60,11 @@ interface AppContextValue {
   addNote: (draft: NoteDraft) => string | null;
   updateNote: (noteId: string, draft: NoteDraft) => void;
   deleteNote: (noteId: string) => void;
+  archiveNote: (noteId: string) => void;
+  restoreNote: (noteId: string) => void;
   setReminderEnabled: (type: ReminderType, enabled: boolean) => void;
   cycleReminderInterval: (type: ReminderType) => void;
+  setReminderInterval: (type: ReminderType, interval: number) => void;
   addWaterIntake: () => void;
   addMovementBreak: () => void;
   startPausePomodoro: () => void;
@@ -80,6 +84,26 @@ function wait(ms: number) {
 
 function computeRefined(task: Pick<Task, 'category' | 'priority' | 'dueDate' | 'plannedHours' | 'notes'>) {
   return Boolean(task.category || task.priority || task.dueDate || task.plannedHours || task.notes?.trim());
+}
+
+function getQuickAddToastMessage(quickAssign: QuickAssign) {
+  if (quickAssign === 'tomorrow') {
+    return 'Dodano zadanie na jutro. Znajdziesz je w Kolejce i przy dniu jutrzejszym.';
+  }
+  if (quickAssign === 'later') {
+    return 'Dodano zadanie na później. Znajdziesz je w Kolejce.';
+  }
+  return 'Dodano zadanie na dziś.';
+}
+
+function getCloneTaskToastMessage(quickAssign: QuickAssign) {
+  if (quickAssign === 'tomorrow') {
+    return 'Skopiowano zadanie na jutro.';
+  }
+  if (quickAssign === 'later') {
+    return 'Skopiowano zadanie na później.';
+  }
+  return 'Skopiowano zadanie na dziś.';
 }
 
 function normalizePlannerHour(value: unknown, fallback: number, min: number, max: number) {
@@ -119,6 +143,15 @@ function normalizeTask(task: Task): Task {
     ...task,
     subtasks: normalizeSubtasks(task.subtasks),
   };
+}
+
+function cloneSubtasksForNewTask(subtasks: SubtaskItem[] | undefined) {
+  return (subtasks ?? []).map((item) => ({
+    ...item,
+    id: makeId('subtask'),
+    completed: false,
+    createdAt: new Date().toISOString(),
+  }));
 }
 
 function ensureModeShape(base: ModeData, current?: Partial<ModeData>): ModeData {
@@ -584,7 +617,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           ...current,
           tasks: [task, ...current.tasks],
         }));
-        showToast('Dodano nowe zadanie.', 'success');
+        showToast(getQuickAddToastMessage(normalizedQuickAssign), 'success');
       },
       updateTask: (taskId, draft) => {
         updateActiveDataset((current) => {
@@ -659,6 +692,50 @@ export function AppProvider({ children }: PropsWithChildren) {
           target?.status === 'completed' ? 'Przywrócono zadanie do aktywnych.' : 'Zadanie oznaczono jako wykonane.',
           'success',
         );
+      },
+      cloneTask: (taskId, quickAssign, draftOverride) => {
+        const sourceTask = activeData.tasks.find((task) => task.id === taskId);
+        if (!sourceTask) {
+          return null;
+        }
+
+        const now = new Date().toISOString();
+        const cloneId = makeId('task');
+        const resolvedTitle = draftOverride?.title?.trim() || sourceTask.title;
+        const resolvedCategory = draftOverride ? draftOverride.category : sourceTask.category;
+        const resolvedPriority = draftOverride ? draftOverride.priority : sourceTask.priority;
+        const resolvedNotes = draftOverride ? draftOverride.notes : sourceTask.notes;
+        const resolvedSubtasks = cloneSubtasksForNewTask(draftOverride ? draftOverride.subtasks : sourceTask.subtasks);
+
+        const clonedTask: Task = {
+          id: cloneId,
+          title: resolvedTitle,
+          status: 'active',
+          isRefined: computeRefined({
+            category: resolvedCategory,
+            priority: resolvedPriority,
+            dueDate: quickAssignToDate(quickAssign),
+            plannedHours: undefined,
+            notes: resolvedNotes,
+          }),
+          quickAssign,
+          category: resolvedCategory,
+          priority: resolvedPriority,
+          dueDate: quickAssignToDate(quickAssign),
+          plannedHours: undefined,
+          scheduledStartTime: undefined,
+          notes: resolvedNotes,
+          subtasks: resolvedSubtasks,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        updateActiveDataset((current) => ({
+          ...current,
+          tasks: [clonedTask, ...current.tasks],
+        }));
+        showToast(getCloneTaskToastMessage(quickAssign), 'success');
+        return cloneId;
       },
       quickMoveTask: (taskId, action) => {
         updateActiveDataset((current) => {
@@ -818,6 +895,36 @@ export function AppProvider({ children }: PropsWithChildren) {
         }));
         showToast('Usunięto notatkę.', 'success');
       },
+      archiveNote: (noteId) => {
+        updateActiveDataset((current) => ({
+          ...current,
+          notes: current.notes.map((note) =>
+            note.id === noteId
+              ? {
+                  ...note,
+                  archivedAt: note.archivedAt ?? new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                }
+              : note,
+          ),
+        }));
+        showToast('Przeniesiono notatkę do archiwum.', 'success');
+      },
+      restoreNote: (noteId) => {
+        updateActiveDataset((current) => ({
+          ...current,
+          notes: current.notes.map((note) =>
+            note.id === noteId
+              ? {
+                  ...note,
+                  archivedAt: undefined,
+                  updatedAt: new Date().toISOString(),
+                }
+              : note,
+          ),
+        }));
+        showToast('Przywrócono notatkę z archiwum.', 'success');
+      },
       setReminderEnabled: (type, enabled) => {
         updateActiveDataset((current) => ({
           ...current,
@@ -838,6 +945,15 @@ export function AppProvider({ children }: PropsWithChildren) {
             const index = options.indexOf(reminder.interval);
             return { ...reminder, interval: options[(index + 1) % options.length] };
           }),
+        }));
+        showToast('Zmieniono interwał przypomnienia.', 'success');
+      },
+      setReminderInterval: (type, interval) => {
+        updateActiveDataset((current) => ({
+          ...current,
+          reminders: current.reminders.map((reminder) =>
+            reminder.type === type ? { ...reminder, interval } : reminder,
+          ),
         }));
         showToast('Zmieniono interwał przypomnienia.', 'success');
       },

@@ -71,6 +71,7 @@ export interface NoteItem {
   personName?: string;
   reminderDate?: string;
   reminderEnabled?: boolean;
+  archivedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

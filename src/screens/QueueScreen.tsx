@@ -41,7 +41,7 @@ export function QueueScreen({ navigation }: Props) {
   const unrefined = activeData.tasks.filter((task) => task.status === 'active' && !task.isRefined && matchesTask(task));
   const closerLater = activeData.tasks.filter((task) => {
     const diff = daysFromToday(task.dueDate);
-    return task.status === 'active' && task.isRefined && diff !== null && diff > 1 && diff <= 14 && matchesTask(task);
+    return task.status === 'active' && task.isRefined && diff !== null && diff >= 1 && diff <= 14 && matchesTask(task);
   });
   const fartherLater = activeData.tasks.filter((task) => {
     const diff = daysFromToday(task.dueDate);
